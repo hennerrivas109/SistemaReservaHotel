@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import Date, datetime
 from sqlalchemy import Column, Date, DateTime, Enum, Integer, Numeric, String, func
 
 from shared.database import Base

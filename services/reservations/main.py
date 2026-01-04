@@ -9,7 +9,7 @@ from shared.events import event_bus
 from shared.security import verify_token
 from shared.database import Base, engine, get_db
 from services.reservations.orchestrator import CrearReservaOrchestrator
-from services.auth.security import create_access_token
+from shared.security import create_access_token
 from services.reservations.schemas import CrearReservaRequest, ReservaResponse
 from services.reservations.service import (
     cancel_reservation,
@@ -39,7 +39,6 @@ def health() -> Dict[str, str]:
 
 
 @app.post("/api/v1/reservations")
-async def create_reservation(payload: CrearReservaRequest, current_user: dict = Depends(verify_token)) -> ReservaResponse:
 async def create_reservation(payload: CrearReservaRequest, current_user: dict = Depends(verify_token), db: Session = Depends(get_db)) -> ReservaResponse:
     orch = CrearReservaOrchestrator()
     # Generar un token interno para llamadas a otros servicios

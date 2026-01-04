@@ -14,9 +14,11 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
-      retries: 10
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "--silent", "-uroot", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
 
   auth-service:
     build:
@@ -31,10 +33,10 @@ services:
       MYSQL_DB: hotel_reservations
       MYSQL_USER: hotel_user
       MYSQL_PASSWORD: hotel_pass
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
-      JWT_ALGORITHM: ${JWT_ALGORITHM}
-      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
-      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-changeme}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
     depends_on:
       mysql:
         condition: service_healthy
@@ -53,9 +55,13 @@ services:
       MYSQL_USER: hotel_user
       MYSQL_PASSWORD: hotel_pass
       AUTH_SERVICE_URL: http://auth-service:8000
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-changeme}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
     depends_on:
-      - mysql
-      - auth-service
+      mysql:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
 
   availability-service:
     build:
@@ -67,7 +73,8 @@ services:
     environment:
       MYSQL_HOST: mysql
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
 
   pricing-service:
     build:
@@ -79,7 +86,8 @@ services:
     environment:
       MYSQL_HOST: mysql
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
 
   payments-service:
     build:
@@ -91,7 +99,8 @@ services:
     environment:
       MYSQL_HOST: mysql
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
 
   reservations-service:
     build:
@@ -107,12 +116,21 @@ services:
       PRICING_SERVICE_URL: http://pricing-service:8000
       PAYMENTS_SERVICE_URL: http://payments-service:8000
       NOTIFICATIONS_SERVICE_URL: http://notifications-service:8000
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-changeme}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
     depends_on:
-      - mysql
-      - customers-service
-      - availability-service
-      - pricing-service
-      - payments-service
+      mysql:
+        condition: service_healthy
+      customers-service:
+        condition: service_started
+      availability-service:
+        condition: service_started
+      pricing-service:
+        condition: service_started
+      payments-service:
+        condition: service_started
 
   notifications-service:
     build:
@@ -122,7 +140,8 @@ services:
     ports:
       - "8006:8000"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
 
 volumes:
   mysql_data:
